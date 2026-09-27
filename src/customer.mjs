@@ -11,12 +11,14 @@ import {
   listProfileSummaries,
   readCredentialsFile,
   readCredentialsStore,
+  readSubscriptionToken,
   resolveCredentialHost,
   resolveProfileName,
   setActiveProfile,
   tokenSource,
 } from "./credentials.mjs";
 import { runGithubInit, runGithubStatus, runGithubToken } from "./github.mjs";
+import { readOriginUrl, runKnowledge } from "./knowledge.mjs";
 import { inferSlug, fetchPackStatus, runInstall } from "./install.mjs";
 import { runLogin } from "./login.mjs";
 import { runMcpStdio } from "./mcp-host.mjs";
@@ -31,6 +33,7 @@ export const CUSTOMER_COMMANDS = new Set([
   "github",
   "mcp",
   "profiles",
+  "knowledge",
 ]);
 
 const writeLine = (text) => {
@@ -208,6 +211,27 @@ export const runCustomerCommand = async (opts, env = process.env) => {
   }
   if (opts.command === "install") {
     await runInstall({ env, host: opts.host, slug: opts.slug, credentialsPath });
+    return 0;
+  }
+  if (opts.command === "knowledge") {
+    const token = readSubscriptionToken(env, { credentialsPath, profile: opts.profile });
+    if (!token) throw new Error("Sign in with autodevelop login first.");
+    const origin = resolveCredentialHost({ env, host: opts.host, credentialsPath, profile: opts.profile });
+    const repoUrl = opts.repoUrl || readOriginUrl();
+    const data = await runKnowledge({
+      action: opts.knowledgeCommand,
+      nodeId: opts.node,
+      orgId: opts.org,
+      repoUrl,
+      origin,
+      token,
+    });
+    if (opts.json) {
+      writeLine(JSON.stringify(data));
+      return 0;
+    }
+    if (data.node) writeLine(`${data.node.label} ${data.node.archived_at ? "archived" : "restored"}`);
+    else writeLine(`Archived nodes: ${(data.nodes || []).length}`);
     return 0;
   }
   if (opts.command === "mcp") {

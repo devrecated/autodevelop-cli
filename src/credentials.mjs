@@ -11,7 +11,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSy
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { hostOrigin } from "./host.mjs";
-import { parseSimpleYaml } from "../../../.cursor/hooks/autodevelop-internal/lib.mjs";
+import { parseSimpleYaml } from "../../../.cursor/hooks/autodevelop/lib.mjs";
 
 export const CREDENTIALS_MODE = 0o600;
 export const DIR_MODE = 0o700;

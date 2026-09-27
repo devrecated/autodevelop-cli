@@ -15,6 +15,7 @@ export const COMMANDS = [
   "mcp",
   "profiles",
   "profile",
+  "knowledge",
 ];
 export const GITHUB_COMMANDS = ["init", "status", "token"];
 
@@ -31,6 +32,13 @@ export const parseCli = (argv = process.argv.slice(2)) => {
     err.code = "usage";
     throw err;
   }
+  const KNOWLEDGE_COMMANDS = ["archive", "restore", "archived"];
+  const knowledgeCommand = command === "knowledge" ? String(args.positional[1] || "").trim() : "";
+  if (command === "knowledge" && !KNOWLEDGE_COMMANDS.includes(knowledgeCommand)) {
+    const err = new Error("Unknown knowledge command. Use archive, restore, or archived.");
+    err.code = "usage";
+    throw err;
+  }
   const githubCommand = command === "github" ? String(args.positional[1] || "").trim() : "";
   if (command === "github" && (!githubCommand || !GITHUB_COMMANDS.includes(githubCommand))) {
     const err = new Error("Unknown github command. Use init, status, or token.");
@@ -41,6 +49,10 @@ export const parseCli = (argv = process.argv.slice(2)) => {
     ...args,
     command: command || "status",
     githubCommand,
+    knowledgeCommand,
+    org: argValue(args, "org", ""),
+    node: argValue(args, "node", ""),
+    repoUrl: argValue(args, "repo-url", ""),
     host: argValue(args, "host", ""),
     slug: argValue(args, "slug", ""),
     profile: profileRaw,
