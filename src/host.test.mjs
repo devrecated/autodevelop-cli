@@ -17,5 +17,6 @@ test("wrapHostFetchError replaces bare fetch failed", () => {
   assert.equal(isHostUnreachable(new TypeError("fetch failed")), true);
   assert.equal(isHostUnreachable(Object.assign(new Error("nope"), { code: "ECONNREFUSED" })), true);
   assert.equal(isHostUnreachable(new Error("Could not start device sign-in.")), false);
-  assert.match(hostUnreachableMessage(""), new RegExp(DEFAULT_HOST.replace(/\./g, "\\.")));
+  assert.equal(hostUnreachableMessage(""), "Autodevelop is not reachable. Check your network and try again.");
+  assert.equal(hostUnreachableMessage("").includes(DEFAULT_HOST), false);
 });

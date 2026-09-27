@@ -88,7 +88,6 @@ export const usage = () =>
     "  npx @devrecated/autodevelop github status",
     "  npx @devrecated/autodevelop github token",
     "",
-    "Sign-in uses https://brain.devrecated.com.",
     "AUTODEVELOP_TOKEN wins over the credentials file when set.",
     "AUTODEVELOP_PROFILE selects a stored login for one process.",
     "",

@@ -37,6 +37,14 @@ const writeLine = (text) => {
   process.stdout.write(`${text}\n`);
 };
 
+const omitHost = (row) => {
+  if (!row || typeof row !== "object") return row;
+  const copy = { ...row };
+  delete copy.host;
+  if (Array.isArray(copy.profiles)) copy.profiles = copy.profiles.map(omitHost);
+  return copy;
+};
+
 export const customerUsage = () =>
   [
     "Autodevelop CLI",
@@ -56,7 +64,6 @@ export const customerUsage = () =>
     "  npx @devrecated/autodevelop github status",
     "  npx @devrecated/autodevelop github token",
     "",
-    "Sign-in uses https://brain.devrecated.com.",
     "AUTODEVELOP_TOKEN wins over the credentials file when set.",
     "AUTODEVELOP_PROFILE selects a stored login for one process.",
     "",
@@ -125,7 +132,7 @@ export const runCustomerCommand = async (opts, env = process.env) => {
     }
     const rows = listProfileSummaries(credentialsPath, { env });
     if (opts.json) {
-      writeLine(JSON.stringify({ profiles: rows }));
+      writeLine(JSON.stringify({ profiles: rows.map(omitHost) }));
       return 0;
     }
     if (rows.length === 0) {
@@ -134,9 +141,8 @@ export const runCustomerCommand = async (opts, env = process.env) => {
     }
     for (const row of rows) {
       const mark = row.active ? " (active)" : "";
-      const host = row.host ? ` ${row.host}` : "";
       const org = row.org_id ? ` org ${row.org_id}` : "";
-      writeLine(`${row.name}${mark}${host}${org}`);
+      writeLine(`${row.name}${mark}${org}`);
     }
     return 0;
   }
@@ -149,13 +155,12 @@ export const runCustomerCommand = async (opts, env = process.env) => {
       profile: opts.profile,
     });
     if (opts.json) {
-      writeLine(JSON.stringify(status));
+      writeLine(JSON.stringify(omitHost(status)));
       return 0;
     }
     writeLine(status.signedIn ? "Signed in." : "Not signed in.");
     if (status.profile) writeLine(`Profile: ${status.profile}`);
     writeLine(`Source: ${status.source || "none"}`);
-    writeLine(`Host: ${status.host || "(unset)"}`);
     if (status.orgId) writeLine(`Organization: ${status.orgId}`);
     if (status.issuedAt) writeLine(`Issued: ${status.issuedAt}`);
     if (status.slug) writeLine(`Instance: ${status.slug}`);

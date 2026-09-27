@@ -23,7 +23,7 @@ test("customer package refuses employee commands", async () => {
   assert.equal(code, 1);
   assert.match(customerUsage(), /npx @devrecated\/autodevelop login/);
   assert.equal(customerUsage().includes("--host"), false);
-  assert.match(customerUsage(), /https:\/\/brain\.devrecated\.com/);
+  assert.equal(customerUsage().includes("brain.devrecated.com"), false);
 });
 
 test("status defaults to the staging brain when no host is stored", () => {
@@ -31,6 +31,35 @@ test("status defaults to the staging brain when no host is stored", () => {
   const status = runStatus({ env: {}, credentialsPath: join(root, "missing.json") });
   assert.equal(status.host, "https://brain.devrecated.com");
   assert.equal(status.signedIn, false);
+});
+
+test("status and profiles do not print the host", async () => {
+  const root = mkdtempSync(join(tmpdir(), "ad-status-quiet-"));
+  const credentialsPath = join(root, "credentials.json");
+  writeCredentialsFile(credentialsPath, {
+    token: "ad_test_cli_status_quiet_fixture",
+    orgId: "org-quiet",
+    host: "https://brain.devrecated.com",
+  });
+  const chunks = [];
+  const original = process.stdout.write;
+  process.stdout.write = (chunk, ...rest) => {
+    chunks.push(String(chunk));
+    return original.call(process.stdout, chunk, ...rest);
+  };
+  try {
+    await runCustomerCommand(parseCli(["status", "--credentials", credentialsPath]), {});
+    await runCustomerCommand(parseCli(["status", "--json", "--credentials", credentialsPath]), {});
+    await runCustomerCommand(parseCli(["profiles", "--credentials", credentialsPath]), {});
+    await runCustomerCommand(parseCli(["profiles", "--json", "--credentials", credentialsPath]), {});
+  } finally {
+    process.stdout.write = original;
+  }
+  const printed = chunks.join("");
+  assert.equal(printed.includes("brain.devrecated.com"), false);
+  assert.equal(printed.includes("Host:"), false);
+  assert.match(printed, /Signed in/);
+  assert.match(printed, /org-quiet/);
 });
 
 test("status uses stored credentials host when AUTODEVELOP_HOST is unset", () => {

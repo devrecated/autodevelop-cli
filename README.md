@@ -99,7 +99,7 @@ npx @devrecated/autodevelop login
 | Command | What it does |
 | --- | --- |
 | `--help` | List all commands and options. |
-| `login` | Device login to Autodevelop at https://brain.devrecated.com. Applies the hosted kit and org policy pack unless you pass `--no-install`. Options: `--slug`, `--profile`, `--no-install`, `--no-open`. |
+| `login` | Device login to Autodevelop. Applies the hosted kit and org policy pack unless you pass `--no-install`. Options: `--slug`, `--profile`, `--no-install`, `--no-open`. |
 | `status` | Shows whether you are signed in, active profile, host, org, and local policy pack version. |
 | `install` | Downloads the kit and org policy pack again (after you are already logged in). Optional `--slug`. |
 | `github init` | Opens the Autodevelop GitHub App install page for your organization. |
