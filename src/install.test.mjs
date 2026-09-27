@@ -151,7 +151,7 @@ test("runInstall applies the package tar then the policy pack", async () => {
   assert.equal(existsSync(join(root, ".autodevelop", "config.json")), true);
   assert.equal(existsSync(join(root, ".cursor", "skills", "acme", "autodevelop", ".policies", "VERSION")), true);
   assert.match(logs.join(""), /Applied Autodevelop kit/);
-  assert.match(logs.join(""), /Wrote Cursor and Claude project MCP and user config/);
+  assert.match(logs.join(""), /Wrote Cursor, Claude, and opencode project MCP and user config/);
   const projectMcp = JSON.parse(readFileSync(join(root, ".cursor", "mcp.json"), "utf8"));
   const rootMcp = JSON.parse(readFileSync(join(root, "mcp.json"), "utf8"));
   assert.equal(projectMcp.mcpServers["autodevelop-host"].args.includes("mcp"), true);

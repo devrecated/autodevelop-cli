@@ -17,11 +17,13 @@ import {
 import { dirname, join, resolve } from "node:path";
 import { writeWorkspaceMcp } from "./workspace-mcp.mjs";
 import { applyClaudeKitToWorkspace, writeClaudeMcp } from "./claude-config.mjs";
+import { applyOpenCodeKitToWorkspace, writeOpenCodeConfig } from "./opencode-config.mjs";
 
 export const PLUGIN_TAR_REL = "autodevelop-plugin.tgz";
 export const PLUGIN_EXTRACT_REL = ".cursor/local/autodevelop-plugin";
 export const CURSOR_KIT_REL = "kits/cursor";
 export const CLAUDE_KIT_REL = "kits/claude";
+export const OPENCODE_KIT_REL = "kits/opencode";
 export const AUTODEVELOP_KIT_REL = "kits/autodevelop";
 export const WORKSPACE_BIND_REL = ".autodevelop";
 
@@ -141,6 +143,8 @@ export const applyPluginToWorkspace = ({ pluginRoot, workspaceRoot, kitRoot } = 
   writeWorkspaceMcp(workspace);
   writeClaudeMcp(workspace);
   applyClaudeKitToWorkspace({ pluginRoot, workspaceRoot, kitRoot });
+  writeOpenCodeConfig(workspace);
+  applyOpenCodeKitToWorkspace({ pluginRoot, workspaceRoot, kitRoot });
   const bindSource = resolveAutodevelopKit({ pluginRoot, kitRoot });
   const bind = join(workspace, WORKSPACE_BIND_REL);
   const bindCopied = bindSource ? copyMissingTree(bindSource, bind) : [];
