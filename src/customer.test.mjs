@@ -22,6 +22,15 @@ test("customer package refuses employee commands", async () => {
   const code = await customerMain(["sandbox"]);
   assert.equal(code, 1);
   assert.match(customerUsage(), /npx @devrecated\/autodevelop login/);
+  assert.equal(customerUsage().includes("--host"), false);
+  assert.match(customerUsage(), /https:\/\/brain\.devrecated\.com/);
+});
+
+test("status defaults to the staging brain when no host is stored", () => {
+  const root = mkdtempSync(join(tmpdir(), "ad-status-default-"));
+  const status = runStatus({ env: {}, credentialsPath: join(root, "missing.json") });
+  assert.equal(status.host, "https://brain.devrecated.com");
+  assert.equal(status.signedIn, false);
 });
 
 test("status uses stored credentials host when AUTODEVELOP_HOST is unset", () => {

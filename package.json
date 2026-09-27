@@ -1,6 +1,6 @@
 {
   "name": "@devrecated/autodevelop",
-  "version": "0.0.2-beta",
+  "version": "0.1.0-alpha.1",
   "type": "module",
   "description": "Autodevelop CLI \u2014 downloads the kit from the Autodevelop host after login, installs the organization policy pack, and connects the GitHub App.",
   "bin": {

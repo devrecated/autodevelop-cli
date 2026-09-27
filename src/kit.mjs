@@ -20,7 +20,7 @@ export const KIT_TAR_MISSING =
   "Could not resolve an Autodevelop kit. Sign in and run install (downloads from the host), or set AUTODEVELOP_KIT_TAR for a local Devrecated checkout.";
 
 export const KIT_HOST_UNREACHABLE =
-  "Could not download the Autodevelop kit from the host. Check AUTODEVELOP_HOST and network access, then retry install.";
+  "Could not download the Autodevelop kit from the host. Check network access, then retry install.";
 
 export const cliPackageDir = (fromUrl = import.meta.url) => dirname(dirname(fileURLToPath(fromUrl)));
 

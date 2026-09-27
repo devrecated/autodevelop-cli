@@ -24,6 +24,7 @@ import {
 } from "./user-mcp.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
+const LOCAL_HOST = "http://127.0.0.1:8787";
 
 test("writeUserMcp merges unrelated servers and drops legacy buckets", () => {
   const root = mkdtempSync(join(tmpdir(), "ad-user-mcp-"));
@@ -46,7 +47,11 @@ test("writeUserMcp merges unrelated servers and drops legacy buckets", () => {
     }),
   );
   const result = writeUserMcp({
-    env: { AUTODEVELOP_USER_MCP: userMcp, AUTODEVELOP_CREDENTIALS: join(configDir, "credentials.json") },
+    env: {
+      AUTODEVELOP_USER_MCP: userMcp,
+      AUTODEVELOP_CREDENTIALS: join(configDir, "credentials.json"),
+      AUTODEVELOP_HOST: LOCAL_HOST,
+    },
     home,
     credentialsPath: join(configDir, "credentials.json"),
     cliBin: join(here, "bin.mjs"),
@@ -110,7 +115,7 @@ test("writeUserMcp interpolates paths under home and skips schema", () => {
   const configDir = join(userHome, ".config", "autodevelop");
   const userMcp = join(root, "cursor-mcp.json");
   writeUserMcp({
-    env: { AUTODEVELOP_USER_MCP: userMcp },
+    env: { AUTODEVELOP_USER_MCP: userMcp, AUTODEVELOP_HOST: LOCAL_HOST },
     home: userHome,
     credentialsPath: join(configDir, "credentials.json"),
     cliBin: join(here, "bin.mjs"),
@@ -144,7 +149,11 @@ test("writeUserMcp overwrites stale launchers and does not treat a matching comm
     }),
   );
   const result = writeUserMcp({
-    env: { AUTODEVELOP_USER_MCP: userMcp, AUTODEVELOP_CREDENTIALS: join(configDir, "credentials.json") },
+    env: {
+      AUTODEVELOP_USER_MCP: userMcp,
+      AUTODEVELOP_CREDENTIALS: join(configDir, "credentials.json"),
+      AUTODEVELOP_HOST: LOCAL_HOST,
+    },
     home,
     credentialsPath: join(configDir, "credentials.json"),
     cliBin: join(here, "bin.mjs"),
