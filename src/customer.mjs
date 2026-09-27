@@ -45,7 +45,7 @@ export const customerUsage = () =>
     "and https://autodevelop.devrecated.com",
     "",
     "login downloads the kit and org policy pack from the host into this repo,",
-    "and wires Cursor MCP. Do not add a local Cursor plugin.",
+    "and wires Cursor, Claude Code, and opencode MCP. Do not add a local Cursor plugin.",
     "",
     "  npx @devrecated/autodevelop login [--host <url>] [--slug <instance>] [--profile <name>] [--no-install] [--no-open]",
     "  npx @devrecated/autodevelop logout [--profile <name>]",

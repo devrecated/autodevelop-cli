@@ -18,6 +18,7 @@ test("customer package refuses employee commands", async () => {
   assert.match(customerUsage(), /https:\/\/devrecated\.com/);
   assert.match(customerUsage(), /https:\/\/autodevelop\.devrecated\.com/);
   assert.match(customerUsage(), /downloads the kit and org policy pack from the host/);
+  assert.match(customerUsage(), /Cursor, Claude Code, and opencode MCP/);
   const code = await customerMain(["sandbox"]);
   assert.equal(code, 1);
   assert.match(customerUsage(), /npx @devrecated\/autodevelop login/);

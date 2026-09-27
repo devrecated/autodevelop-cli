@@ -16,6 +16,7 @@ import { applyKit } from "./kit.mjs";
 import { writeUserMcp, resolveCliBin, userMcpCustomerLines } from "./user-mcp.mjs";
 import { writeWorkspaceMcp } from "./workspace-mcp.mjs";
 import { writeClaudeMcp } from "./claude-config.mjs";
+import { writeOpenCodeConfig } from "./opencode-config.mjs";
 
 const toPosix = (value) => String(value || "").replaceAll("\\", "/");
 
@@ -157,6 +158,7 @@ export const runInstall = async ({
   if (bound) wrote.push(bound);
   writeWorkspaceMcp(root, origin);
   writeClaudeMcp(root, origin);
+  writeOpenCodeConfig(root, origin);
   const user = writeUserMcp({
     env,
     credentialsPath: path,
@@ -164,7 +166,7 @@ export const runInstall = async ({
     cwd: root,
     host,
   });
-  write("Wrote Cursor and Claude project MCP and user config.\n");
+  write("Wrote Cursor, Claude, and opencode project MCP and user config.\n");
   for (const line of userMcpCustomerLines(user)) write(`${line}\n`);
   write(`Installed policy pack ${pack.policyPackVersion} for ${pack.slug || slug} (${wrote.length} files).\n`);
   return { slug: pack.slug || slug, version: pack.policyPackVersion, wrote, github: pack.github || null, kit };
