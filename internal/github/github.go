@@ -26,11 +26,12 @@ type accountRow struct {
 }
 
 type statusBody struct {
-	Connected bool         `json:"connected"`
-	Account   string       `json:"account"`
-	Accounts  []accountRow `json:"accounts"`
-	URL       string       `json:"url"`
-	Error     string       `json:"error"`
+	Connected  bool         `json:"connected"`
+	Account    string       `json:"account"`
+	Accounts   []accountRow `json:"accounts"`
+	URL        string       `json:"url"`
+	InstallURL string       `json:"install_url"`
+	Error      string       `json:"error"`
 }
 
 type tokenBody struct {
@@ -66,7 +67,7 @@ func Run(opts Options) error {
 		opts.Stderr = os.Stderr
 	}
 	if opts.Client == nil {
-		opts.Client = http.DefaultClient
+		opts.Client = &http.Client{Timeout: 20 * time.Second}
 	}
 	if opts.Sleep == nil {
 		opts.Sleep = time.Sleep
@@ -200,7 +201,15 @@ func runToken(opts Options) error {
 	return nil
 }
 
+func flush(w io.Writer) {
+	if f, ok := w.(interface{ Sync() error }); ok {
+		_ = f.Sync()
+	}
+}
+
 func runInit(opts Options) error {
+	fmt.Fprintln(opts.Stdout, "Checking the GitHub App for this organization.")
+	flush(opts.Stdout)
 	var current statusBody
 	if _, err := getJSON(opts, "/cli/github", &current); err != nil {
 		return err
@@ -209,15 +218,19 @@ func runInit(opts Options) error {
 		fmt.Fprintf(opts.Stdout, "GitHub App primary is %s.\n", orConnected(current.Account))
 		return nil
 	}
-	var started statusBody
-	if _, err := getJSON(opts, "/cli/github/install-url", &started); err != nil {
-		return err
+	href := strings.TrimSpace(current.InstallURL)
+	if href == "" {
+		var started statusBody
+		if _, err := getJSON(opts, "/cli/github/install-url", &started); err != nil {
+			return err
+		}
+		href = strings.TrimSpace(started.URL)
 	}
-	href := strings.TrimSpace(started.URL)
 	if href == "" {
 		return errors.New("Host did not return a GitHub App install URL.")
 	}
 	fmt.Fprintf(opts.Stdout, "Open this page to install the Autodevelop GitHub App:\n%s\n", href)
+	flush(opts.Stdout)
 	if !opts.NoOpen {
 		if err := opts.Open(href); err != nil {
 			fmt.Fprintln(opts.Stderr, "Could not open a browser. Open the URL above.")
