@@ -25,12 +25,15 @@ gh repo create devrecated/packages --public --description "apt + dnf repos for D
 
 ## Secrets (on `devrecated/autodevelop-cli`)
 
-| Secret | Required for |
+| Secret / setup | Required for |
 |--------|----------------|
-| `NPM_TOKEN` | `npm publish` from `packaging/npm` |
+| **Trusted Publisher** on npmjs.com for `@devrecated/autodevelop` → GitHub `devrecated/autodevelop-cli`, workflow `release.yml` | `npm publish` via OIDC (preferred; no long-lived token) |
+| `NPM_TOKEN` | Fallback only if Trusted Publisher is not configured |
 | `PACKAGING_TOKEN` | Push `homebrew-tap`, `scoop-bucket`, and `packages` |
 | `HOMEBREW_TAP_TOKEN` / `SCOOP_TOKEN` | Optional overrides |
 | `WINGET_PAT` | Auto-PR to `microsoft/winget-pkgs` |
+
+If Release’s npm job was skipping, npm stayed on an old beta while GitHub Releases moved on. Trusted Publisher + `id-token: write` on `release.yml` is the fix.
 
 ## Local snapshot
 
