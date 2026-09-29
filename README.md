@@ -27,13 +27,16 @@ See [packaging/README.md](packaging/README.md) for apt, dnf, Scoop, and winget.
 
 ```bash
 autodevelop login                  # prompts for repo dir (default: git root / cwd)
-autodevelop login --dir /path/to/repo --no-open
-autodevelop status
+autodevelop login --dir /path/to/repo --profile acme --no-open
+autodevelop status                 # Profile / Host / Current Project (github.com/owner/repo)
+autodevelop profiles
 autodevelop install --slug <instance>
 autodevelop mcp                    # host stdio shim (loopback)
 autodevelop kit-mcp                # kit tools stdio
 autodevelop hook guard-shell       # editor hook
 ```
+
+Multiple orgs: `login --profile <name>` stores another credential. Login also binds the repo’s GitHub origin (`github.com/owner/repo`) to that profile, so another Cursor window in a different repo picks its org from cwd without fighting a single global active profile. Override with `AUTODEVELOP_PROFILE` or `--profile` when needed.
 
 ## Develop
 

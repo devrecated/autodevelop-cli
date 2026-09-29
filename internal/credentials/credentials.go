@@ -33,6 +33,9 @@ type Entry struct {
 type Store struct {
 	Active   string            `json:"active"`
 	Profiles map[string]*Entry `json:"profiles"`
+	// Projects maps github.com/owner/repo → profile so parallel workspaces
+	// (different Cursor windows) keep their org without fighting Active.
+	Projects map[string]string `json:"projects,omitempty"`
 }
 
 func DefaultPath(env map[string]string) string {
@@ -83,6 +86,61 @@ func ResolveProfileName(env map[string]string, profile, active string) (string, 
 	return DefaultProfile, nil
 }
 
+// ResolveEffectiveProfile prefers --profile / AUTODEVELOP_PROFILE, then a
+// project binding (github.com/owner/repo), then the store active profile.
+// Parallel Cursor windows can each login under a different profile; cwd's
+// origin remote selects the right org without mutating global Active alone.
+func ResolveEffectiveProfile(env map[string]string, profileFlag, path, project string) (string, error) {
+	if env == nil {
+		env = map[string]string{}
+	}
+	if v := strings.TrimSpace(profileFlag); v != "" {
+		return AssertProfileName(v)
+	}
+	if v := strings.TrimSpace(env["AUTODEVELOP_PROFILE"]); v != "" {
+		return AssertProfileName(v)
+	}
+	if b := BoundProfile(path, project); b != "" {
+		return AssertProfileName(b)
+	}
+	store := ReadStore(path)
+	if v := strings.TrimSpace(store.Active); v != "" {
+		return AssertProfileName(v)
+	}
+	return DefaultProfile, nil
+}
+
+// BoundProfile returns the profile bound to github.com/owner/repo, or "".
+func BoundProfile(path, project string) string {
+	project = strings.TrimSpace(project)
+	if project == "" {
+		return ""
+	}
+	store := ReadStore(path)
+	if store.Projects == nil {
+		return ""
+	}
+	return strings.TrimSpace(store.Projects[project])
+}
+
+// BindProject records github.com/owner/repo → profile for cwd-scoped login.
+func BindProject(path, project, profile string) error {
+	project = strings.TrimSpace(project)
+	if project == "" {
+		return nil
+	}
+	name, err := AssertProfileName(profile)
+	if err != nil {
+		return err
+	}
+	store := ReadStore(path)
+	if store.Projects == nil {
+		store.Projects = map[string]string{}
+	}
+	store.Projects[project] = name
+	return writeStore(path, store)
+}
+
 func ReadStore(path string) Store {
 	empty := Store{Active: DefaultProfile, Profiles: map[string]*Entry{}}
 	raw, err := os.ReadFile(path)
@@ -104,7 +162,15 @@ func ReadStore(path string) Store {
 		if strings.TrimSpace(active) == "" {
 			active = DefaultProfile
 		}
-		return Store{Active: active, Profiles: profiles}
+		projects := map[string]string{}
+		if projectsRaw, ok := data["projects"].(map[string]any); ok {
+			for k, v := range projectsRaw {
+				if s, ok := v.(string); ok && strings.TrimSpace(s) != "" {
+					projects[strings.TrimSpace(k)] = strings.TrimSpace(s)
+				}
+			}
+		}
+		return Store{Active: active, Profiles: profiles, Projects: projects}
 	}
 	if e := normalizeEntry(data); e != nil {
 		return Store{Active: DefaultProfile, Profiles: map[string]*Entry{DefaultProfile: e}}

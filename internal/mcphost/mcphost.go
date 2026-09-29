@@ -14,6 +14,7 @@ import (
 
 	"github.com/devrecated/autodevelop-cli/internal/credentials"
 	"github.com/devrecated/autodevelop-cli/internal/host"
+	"github.com/devrecated/autodevelop-cli/internal/repo"
 )
 
 func rpcError(id any, message string) map[string]any {
@@ -88,7 +89,9 @@ func Run(opts Options) error {
 	if path == "" {
 		path = credentials.DefaultPath(opts.Env)
 	}
-	stored := credentials.ReadFile(path, opts.Env, "")
+	project := repo.GitHubProject(repo.FindRoot(""))
+	profile, _ := credentials.ResolveEffectiveProfile(opts.Env, "", path, project)
+	stored := credentials.ReadFile(path, opts.Env, profile)
 	var storedHost string
 	if stored != nil && stored.Host != nil {
 		storedHost = *stored.Host
@@ -113,7 +116,7 @@ func Run(opts Options) error {
 		if message["id"] == nil {
 			continue
 		}
-		credential := credentials.ReadToken(opts.Env, path, "")
+		credential := credentials.ReadToken(opts.Env, path, profile)
 		reply, err := Post(opts.Client, origin, credential, message)
 		if err != nil {
 			return err

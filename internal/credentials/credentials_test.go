@@ -34,17 +34,32 @@ func TestWriteReadProfile(t *testing.T) {
 	}
 }
 
-func TestResolveHostFallsBackToActive(t *testing.T) {
+func TestBindProjectSelectsProfile(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "credentials.json")
 	env := map[string]string{}
-	host := "https://example.test"
+	hostA := "https://a.test"
+	hostB := "https://b.test"
 	issued := "2026-09-28T00:00:00Z"
-	_ = credentials.WriteFile(path, "ad_a", nil, &issued, &host, "default", env)
-	got := credentials.ResolveHost(env, "", path, "newprofile")
-	// new profile has no entry — should still use flag/env/default, not leap incorrectly when active has host
-	// With empty flag and no AUTODEVELOP_HOST, active profile host is used via ResolveHost logic when profile miss
-	if got == "" {
-		t.Fatal("empty host")
+	_ = credentials.WriteFile(path, "ad_a", nil, &issued, &hostA, "acme", env)
+	_ = credentials.WriteFile(path, "ad_b", nil, &issued, &hostB, "devrecated", env)
+	if err := credentials.BindProject(path, "github.com/acme/app", "acme"); err != nil {
+		t.Fatal(err)
+	}
+	if err := credentials.BindProject(path, "github.com/devrecated/autodevelop", "devrecated"); err != nil {
+		t.Fatal(err)
+	}
+	got, err := credentials.ResolveEffectiveProfile(env, "", path, "github.com/acme/app")
+	if err != nil || got != "acme" {
+		t.Fatalf("acme project → %q (%v)", got, err)
+	}
+	got, err = credentials.ResolveEffectiveProfile(env, "", path, "github.com/devrecated/autodevelop")
+	if err != nil || got != "devrecated" {
+		t.Fatalf("devrecated project → %q (%v)", got, err)
+	}
+	env["AUTODEVELOP_PROFILE"] = "acme"
+	got, err = credentials.ResolveEffectiveProfile(env, "", path, "github.com/devrecated/autodevelop")
+	if err != nil || got != "acme" {
+		t.Fatalf("env override → %q (%v)", got, err)
 	}
 }

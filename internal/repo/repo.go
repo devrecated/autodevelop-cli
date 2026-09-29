@@ -7,7 +7,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
+)
+
+var (
+	githubSSHRE  = regexp.MustCompile(`(?i)^(?:ssh://)?git@github\.com[:/]([^/]+)/([^/]+?)(?:\.git)?/?$`)
+	githubHTTPRE = regexp.MustCompile(`(?i)^https?://(?:www\.)?github\.com/([^/]+)/([^/]+?)(?:\.git)?/?$`)
 )
 
 // FindRoot returns git toplevel from start, else start.
@@ -27,6 +33,35 @@ func FindRoot(start string) string {
 		return start
 	}
 	return top
+}
+
+// NormalizeGitHubRemote turns a git remote URL into "github.com/owner/repo", or "".
+func NormalizeGitHubRemote(remote string) string {
+	remote = strings.TrimSpace(remote)
+	if remote == "" {
+		return ""
+	}
+	if m := githubSSHRE.FindStringSubmatch(remote); len(m) == 3 {
+		return "github.com/" + m[1] + "/" + strings.TrimSuffix(m[2], ".git")
+	}
+	if m := githubHTTPRE.FindStringSubmatch(remote); len(m) == 3 {
+		return "github.com/" + m[1] + "/" + strings.TrimSuffix(m[2], ".git")
+	}
+	return ""
+}
+
+// GitHubProject returns github.com/owner/repo for origin in root, or "".
+func GitHubProject(root string) string {
+	if root == "" {
+		root, _ = os.Getwd()
+	}
+	cmd := exec.Command("git", "remote", "get-url", "origin")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return NormalizeGitHubRemote(strings.TrimSpace(string(out)))
 }
 
 // Resolve picks --dir, else prompts on TTY with default = FindRoot(cwd), else that default.

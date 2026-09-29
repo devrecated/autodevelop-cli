@@ -34,6 +34,8 @@ Autodevelop CLI
 
 AUTODEVELOP_TOKEN wins over the credentials file when set.
 AUTODEVELOP_PROFILE selects a stored login for one process.
+Login binds the current GitHub origin (github.com/owner/repo) to that profile
+so other Cursor windows can stay on a different org.
 `) + "\n"
 }
 
@@ -110,6 +112,10 @@ func Run(argv []string) int {
 			fmt.Fprintln(os.Stderr, err)
 			return 1
 		}
+		active, _ := credentials.ResolveProfileName(env, profile, "")
+		if project := repo.GitHubProject(root); project != "" && active != "" {
+			_ = credentials.BindProject(creds, project, active)
+		}
 		if !hasFlag(args, "no-install") {
 			if err := install.Run(install.Options{
 				Env:             env,
@@ -142,15 +148,18 @@ func Run(argv []string) int {
 		return 0
 	case "status":
 		root, _ := repo.Resolve(dirFlag, "", false, nil, nil)
-		stored := credentials.ReadFile(creds, env, profile)
-		src := credentials.TokenSource(env, creds, profile)
-		origin := credentials.ResolveHost(env, hostFlag, creds, profile)
+		project := repo.GitHubProject(root)
+		active, _ := credentials.ResolveEffectiveProfile(env, profile, creds, project)
+		stored := credentials.ReadFile(creds, env, active)
+		src := credentials.TokenSource(env, creds, active)
+		origin := credentials.ResolveHost(env, hostFlag, creds, active)
 		out := map[string]any{
 			"signed_in": src != "",
-			"source":    src,
 			"host":      origin,
+			"project":   project,
 			"root":      root,
 			"version":   version.Version,
+			"profile":   active,
 		}
 		if stored != nil {
 			if stored.IssuedAt != nil {
@@ -160,8 +169,6 @@ func Run(argv []string) int {
 				out["org_id"] = *stored.OrgID
 			}
 		}
-		active, _ := credentials.ResolveProfileName(env, profile, credentials.ReadStore(creds).Active)
-		out["profile"] = active
 		if hasFlag(args, "json") {
 			enc, _ := json.MarshalIndent(out, "", "  ")
 			fmt.Println(string(enc))
@@ -173,9 +180,12 @@ func Run(argv []string) int {
 		}
 		fmt.Println("Signed in.")
 		fmt.Println("Profile:", active)
-		fmt.Println("Source:", src)
 		fmt.Println("Host:", origin)
-		fmt.Println("Root:", root)
+		if project != "" {
+			fmt.Println("Current Project:", project)
+		} else if root != "" {
+			fmt.Println("Current Project:", root)
+		}
 		return 0
 	case "profiles", "profile":
 		for _, p := range credentials.ListSummaries(creds, env) {
