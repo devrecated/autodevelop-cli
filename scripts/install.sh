@@ -73,10 +73,22 @@ done
 chmod +x "$tmpbin"
 install_dir="${AUTODEVELOP_INSTALL_DIR:-${HOME}/.local/bin}"
 mkdir -p "$install_dir"
-install -m 755 "$tmpbin" "${install_dir}/${BIN_NAME}"
-echo "Installed ${install_dir}/${BIN_NAME} (${tag})"
+dest="${install_dir}/${BIN_NAME}"
+install -m 755 "$tmpbin" "$dest"
+
+# Gatekeeper: unsigned darwin binaries carry com.apple.quarantine from the download.
+# Strip it so first launch is not blocked (until we notarize).
+if [ "$os" = "darwin" ]; then
+  if [ -w "$dest" ]; then
+    xattr -d com.apple.quarantine "$dest" 2>/dev/null || true
+  else
+    sudo xattr -d com.apple.quarantine "$dest" 2>/dev/null || true
+  fi
+fi
+
+echo "Installed ${dest} (${tag})"
 case ":$PATH:" in
   *":${install_dir}:"*) ;;
   *) echo "Add ${install_dir} to PATH if needed." ;;
 esac
-"${install_dir}/${BIN_NAME}" version || true
+"$dest" version || true

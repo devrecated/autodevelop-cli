@@ -102,6 +102,14 @@ homebrew_casks:
       email: 41898282+github-actions[bot]@users.noreply.github.com
     binaries:
       - autodevelop
+    # Unsigned until Apple Developer ID + notarize.
+    # Homebrew casks quarantine downloads; strip so Gatekeeper does not block first run.
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}"]
+          end
 
 scoops:
   - name: autodevelop

@@ -76,6 +76,16 @@ async function main() {
   if (process.platform !== "win32") {
     fs.chmodSync(dest, 0o755);
   }
+  // Gatekeeper: strip quarantine on unsigned darwin downloads.
+  if (process.platform === "darwin") {
+    try {
+      execFileSync("xattr", ["-d", "com.apple.quarantine", dest], {
+        stdio: "ignore",
+      });
+    } catch {
+      /* attribute may be absent */
+    }
+  }
 
   try {
     const out = execFileSync(dest, ["version"], { encoding: "utf8" }).trim();
