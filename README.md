@@ -8,20 +8,44 @@ No Node runtime required after install.
 ## Install
 
 ```bash
-# Homebrew (after tap exists)
+# Homebrew
 brew install --cask devrecated/tap/autodevelop
 
-# curl
+# curl (GitHub Release binary)
 curl -fsSL https://raw.githubusercontent.com/devrecated/autodevelop-cli/main/scripts/install.sh | bash
 
-# npm (downloads the binary in postinstall)
+# apt (Debian / Ubuntu) — adds the Devrecated package repo, then installs
+curl -fsSL https://devrecated.github.io/packages/install-apt.sh | sudo bash
+
+# dnf / yum (Fedora / RHEL-ish) — same idea
+curl -fsSL https://devrecated.github.io/packages/install-dnf.sh | sudo bash
+
+# npm (downloads the matching Release binary in postinstall)
 npm install -g @devrecated/autodevelop
 
 # AUR
 yay -S autodevelop-bin
 ```
 
-See [packaging/README.md](packaging/README.md) for apt, dnf, Scoop, and winget.
+### apt / dnf without the installer script
+
+Add the package mirror **before** `apt install` / `dnf install`. Plain `apt install autodevelop` fails until the Devrecated repo is on the machine.
+
+```bash
+# Debian / Ubuntu — add repo, then install
+curl -fsSL https://devrecated.github.io/packages/autodevelop.list \
+  | sudo tee /etc/apt/sources.list.d/autodevelop.list >/dev/null
+sudo apt-get update
+sudo apt-get install -y autodevelop
+
+# Fedora / RHEL-ish
+curl -fsSL https://devrecated.github.io/packages/autodevelop.repo \
+  | sudo tee /etc/yum.repos.d/autodevelop.repo >/dev/null
+sudo dnf install -y autodevelop
+```
+
+Repo index: https://devrecated.github.io/packages/  
+More channels (Scoop, winget, signing notes): [packaging/README.md](packaging/README.md).
 
 ## Usage
 
