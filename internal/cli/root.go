@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/devrecated/autodevelop-cli/internal/credentials"
 	"github.com/devrecated/autodevelop-cli/internal/github"
 	"github.com/devrecated/autodevelop-cli/internal/hooks"
+	"github.com/devrecated/autodevelop-cli/internal/host"
 	"github.com/devrecated/autodevelop-cli/internal/install"
 	"github.com/devrecated/autodevelop-cli/internal/kitmcp"
 	"github.com/devrecated/autodevelop-cli/internal/knowledge"
@@ -174,6 +176,24 @@ func Run(argv []string) int {
 				out["org_id"] = *stored.OrgID
 			}
 		}
+		token := credentials.ReadToken(env, creds, active)
+		probe := host.Probe(&http.Client{Timeout: 4 * time.Second}, origin, token)
+		storedOrg := ""
+		if stored != nil && stored.OrgID != nil {
+			storedOrg = *stored.OrgID
+		}
+		orgLabel := host.OrganizationLabel(probe.OrgName, firstNonEmpty(probe.OrgID, storedOrg), active)
+		out["server"] = "unreachable"
+		if probe.Reachable {
+			out["server"] = "reachable"
+		}
+		out["authorized"] = probe.Authorized
+		if probe.OrgName != "" {
+			out["org_name"] = probe.OrgName
+		}
+		if orgLabel != "" {
+			out["organization"] = orgLabel
+		}
 		if hasFlag(args, "json") {
 			enc, _ := json.MarshalIndent(out, "", "  ")
 			fmt.Println(string(enc))
@@ -181,14 +201,32 @@ func Run(argv []string) int {
 		}
 		if src == "" {
 			fmt.Println("Not signed in.")
+			if probe.Reachable {
+				fmt.Println("Server: reachable")
+			} else {
+				fmt.Println("Server: unreachable")
+				if probe.Reason != "" {
+					fmt.Println(probe.Reason)
+				}
+			}
 			return 0
 		}
 		fmt.Println("Signed in.")
 		fmt.Println("Profile:", active)
+		if probe.Reachable {
+			fmt.Println("Server: reachable")
+		} else {
+			fmt.Println("Server: unreachable")
+			if probe.Reason != "" {
+				fmt.Println(probe.Reason)
+			}
+		}
+		if probe.Reachable && !probe.Authorized {
+			fmt.Println("Signed in on this machine, but the server did not accept the sign-in.")
+		}
 		fmt.Println("Source:", src)
-		fmt.Println("Host:", origin)
-		if stored != nil && stored.OrgID != nil && *stored.OrgID != "" {
-			fmt.Println("Organization:", *stored.OrgID)
+		if orgLabel != "" {
+			fmt.Println("Organization:", orgLabel)
 		}
 		if stored != nil && stored.IssuedAt != nil && *stored.IssuedAt != "" {
 			fmt.Println("Issued:", *stored.IssuedAt)
@@ -336,4 +374,13 @@ func Run(argv []string) int {
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n\n%s", cmd, Usage())
 		return 1
 	}
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }
