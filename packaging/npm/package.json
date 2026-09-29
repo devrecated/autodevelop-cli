@@ -1,6 +1,6 @@
 {
   "name": "@devrecated/autodevelop",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "description": "Autodevelop CLI — downloads the kit from the Autodevelop host after login, installs the organization policy pack, and connects MCP (binary wrapper).",
   "keywords": [
     "autodevelop",
