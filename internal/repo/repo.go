@@ -50,6 +50,20 @@ func NormalizeGitHubRemote(remote string) string {
 	return ""
 }
 
+// OriginURL returns the raw git origin URL, or "".
+func OriginURL(root string) string {
+	if root == "" {
+		root, _ = os.Getwd()
+	}
+	cmd := exec.Command("git", "remote", "get-url", "origin")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
 // GitHubProject returns github.com/owner/repo for origin in root, or "".
 func GitHubProject(root string) string {
 	if root == "" {

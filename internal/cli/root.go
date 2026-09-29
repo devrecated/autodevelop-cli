@@ -4,15 +4,19 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 
 	"github.com/devrecated/autodevelop-cli/internal/credentials"
+	"github.com/devrecated/autodevelop-cli/internal/github"
 	"github.com/devrecated/autodevelop-cli/internal/hooks"
 	"github.com/devrecated/autodevelop-cli/internal/install"
 	"github.com/devrecated/autodevelop-cli/internal/kitmcp"
+	"github.com/devrecated/autodevelop-cli/internal/knowledge"
 	"github.com/devrecated/autodevelop-cli/internal/login"
 	"github.com/devrecated/autodevelop-cli/internal/mcphost"
+	"github.com/devrecated/autodevelop-cli/internal/packstatus"
 	"github.com/devrecated/autodevelop-cli/internal/repo"
 	"github.com/devrecated/autodevelop-cli/internal/version"
 )
@@ -26,7 +30,8 @@ Autodevelop CLI
   autodevelop status [--dir <path>]
   autodevelop profiles
   autodevelop install [--dir <path>] [--slug <instance>]
-  autodevelop github init|status|token
+  autodevelop github init|status|token [--account <login>]
+  autodevelop knowledge archive|restore|archived [--node <id>] [--org <id>] [--repo-url <url>]
   autodevelop mcp
   autodevelop kit-mcp
   autodevelop hook <id>
@@ -180,7 +185,35 @@ func Run(argv []string) int {
 		}
 		fmt.Println("Signed in.")
 		fmt.Println("Profile:", active)
+		fmt.Println("Source:", src)
 		fmt.Println("Host:", origin)
+		if stored != nil && stored.OrgID != nil && *stored.OrgID != "" {
+			fmt.Println("Organization:", *stored.OrgID)
+		}
+		if stored != nil && stored.IssuedAt != nil && *stored.IssuedAt != "" {
+			fmt.Println("Issued:", *stored.IssuedAt)
+		}
+		instance := packstatus.InferSlug(root, slug)
+		localVersion := packstatus.ReadLocalVersion(root, instance)
+		if instance != "" {
+			fmt.Println("Instance:", instance)
+		}
+		if localVersion != "" {
+			fmt.Println("Local policy pack:", localVersion)
+		}
+		fmt.Println("Credentials file:", creds)
+		if localVersion != "" {
+			credential := credentials.ReadToken(env, creds, active)
+			remote, err := packstatus.Fetch(http.DefaultClient, origin, credential, instance, localVersion)
+			if err != nil {
+				fmt.Println("Hosted pack version: unreachable")
+			} else {
+				fmt.Println("Hosted policy pack:", remote.HostedVersion)
+				if remote.Compatible != nil && !*remote.Compatible {
+					fmt.Println("Hosted pack version differs. Ask before running install again.")
+				}
+			}
+		}
 		if project != "" {
 			fmt.Println("Current Project:", project)
 		} else if root != "" {
@@ -188,7 +221,21 @@ func Run(argv []string) int {
 		}
 		return 0
 	case "profiles", "profile":
-		for _, p := range credentials.ListSummaries(creds, env) {
+		if profile != "" {
+			name, err := credentials.SetActive(creds, profile)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return 1
+			}
+			fmt.Println("Active profile:", name)
+			return 0
+		}
+		rows := credentials.ListSummaries(creds, env)
+		if len(rows) == 0 {
+			fmt.Println("No stored profiles.")
+			return 0
+		}
+		for _, p := range rows {
 			mark := " "
 			if p.Active {
 				mark = "*"
@@ -240,8 +287,51 @@ func Run(argv []string) int {
 		}
 		return 0
 	case "github":
-		fmt.Fprintln(os.Stderr, "github subcommands: port in progress — install the GitHub App from the host after login.")
-		return 1
+		sub := ""
+		if len(args) > 0 && !strings.HasPrefix(args[0], "--") {
+			sub = args[0]
+		}
+		root, _ := repo.Resolve(dirFlag, "", false, nil, nil)
+		project := repo.GitHubProject(root)
+		if err := github.Run(github.Options{
+			Env:             env,
+			Host:            hostFlag,
+			CredentialsPath: creds,
+			Profile:         profile,
+			Project:         project,
+			Command:         sub,
+			Account:         flagValue(args, "account"),
+			NoOpen:          hasFlag(args, "no-open"),
+			JSON:            hasFlag(args, "json"),
+		}); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		return 0
+	case "knowledge":
+		action := ""
+		if len(args) > 0 && !strings.HasPrefix(args[0], "--") {
+			action = args[0]
+		}
+		root, _ := repo.Resolve(dirFlag, "", false, nil, nil)
+		project := repo.GitHubProject(root)
+		if err := knowledge.Run(knowledge.Options{
+			Env:             env,
+			Host:            hostFlag,
+			CredentialsPath: creds,
+			Profile:         profile,
+			Project:         project,
+			Action:          action,
+			Node:            flagValue(args, "node"),
+			Org:             flagValue(args, "org"),
+			RepoURL:         flagValue(args, "repo-url"),
+			Root:            root,
+			JSON:            hasFlag(args, "json"),
+		}); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		return 0
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n\n%s", cmd, Usage())
 		return 1
