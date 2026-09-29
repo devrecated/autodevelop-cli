@@ -1,0 +1,125 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: autodevelop
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: autodevelop
+    main: ./cmd/autodevelop
+    binary: autodevelop
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X github.com/devrecated/autodevelop-cli/internal/version.Version={{.Version}}
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - id: default
+    formats: [binary]
+    name_template: "autodevelop_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: SHA256SUMS.txt
+  algorithm: sha256
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: devrecated
+    name: autodevelop-cli
+  draft: false
+  prerelease: auto
+  name_template: "v{{.Version}}"
+
+nfpms:
+  - id: packages
+    ids:
+      - autodevelop
+    package_name: autodevelop
+    file_name_template: "autodevelop_{{ .Version }}_{{ .Arch }}"
+    homepage: https://github.com/devrecated/autodevelop-cli
+    maintainer: Devrecated <opensource@devrecated.com>
+    description: |-
+      Autodevelop CLI — login, kit install, and MCP for agentic coding teams.
+    license: SEE LICENSE IN LICENSE.md
+    section: utils
+    priority: optional
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
+    contents:
+      - src: LICENSE.md
+        dst: /usr/share/doc/autodevelop/LICENSE.md
+        type: doc
+      - src: README.md
+        dst: /usr/share/doc/autodevelop/README.md
+        type: doc
+
+homebrew_casks:
+  - name: autodevelop
+    ids:
+      - default
+    skip_upload: '{{ not (isEnvSet "HOMEBREW_TAP_TOKEN") }}'
+    repository:
+      owner: devrecated
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Casks
+    homepage: https://github.com/devrecated/autodevelop-cli
+    description: Autodevelop CLI — login, kit install, and MCP for agentic coding teams.
+    license: Proprietary
+    commit_author:
+      name: autodevelop-bot
+      email: 41898282+github-actions[bot]@users.noreply.github.com
+    binaries:
+      - autodevelop
+
+scoops:
+  - name: autodevelop
+    ids:
+      - default
+    skip_upload: '{{ not (isEnvSet "SCOOP_TOKEN") }}'
+    repository:
+      owner: devrecated
+      name: scoop-bucket
+      token: "{{ .Env.SCOOP_TOKEN }}"
+    directory: bucket
+    homepage: https://github.com/devrecated/autodevelop-cli
+    description: Autodevelop CLI — login, kit install, and MCP for agentic coding teams.
+    license: Proprietary
+    commit_author:
+      name: autodevelop-bot
+      email: 41898282+github-actions[bot]@users.noreply.github.com
+    url_template: "https://github.com/devrecated/autodevelop-cli/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+
+snapshot:
+  version_template: "{{ .Version }}-next"

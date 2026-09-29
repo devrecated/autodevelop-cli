@@ -1,0 +1,25 @@
+# Maintainer: Devrecated <opensource@devrecated.com>
+# shellcheck disable=SC2034
+pkgname=autodevelop-bin
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Autodevelop CLI — login, kit install, and MCP for agentic coding teams"
+arch=('x86_64' 'aarch64')
+url="https://github.com/devrecated/autodevelop-cli"
+license=('custom')
+provides=('autodevelop')
+conflicts=('autodevelop')
+depends=()
+source_x86_64=("${pkgname}-${pkgver}-x86_64::https://github.com/devrecated/autodevelop-cli/releases/download/v${pkgver}/autodevelop_${pkgver}_linux_amd64")
+source_aarch64=("${pkgname}-${pkgver}-aarch64::https://github.com/devrecated/autodevelop-cli/releases/download/v${pkgver}/autodevelop_${pkgver}_linux_arm64")
+sha256sums_x86_64=('SKIP')
+sha256sums_aarch64=('SKIP')
+
+package() {
+  local bin
+  case "$CARCH" in
+    x86_64) bin="${pkgname}-${pkgver}-x86_64" ;;
+    aarch64) bin="${pkgname}-${pkgver}-aarch64" ;;
+  esac
+  install -Dm755 "${srcdir}/${bin}" "${pkgdir}/usr/bin/autodevelop"
+}

@@ -1,0 +1,52 @@
+{
+  "name": "@devrecated/autodevelop",
+  "version": "0.1.0",
+  "description": "Autodevelop CLI — downloads the kit from the Autodevelop host after login, installs the organization policy pack, and connects MCP (binary wrapper).",
+  "keywords": [
+    "autodevelop",
+    "cursor",
+    "claude-code",
+    "opencode",
+    "mcp",
+    "cli",
+    "agentic-coding"
+  ],
+  "homepage": "https://github.com/devrecated/autodevelop-cli#readme",
+  "bugs": {
+    "url": "https://github.com/devrecated/autodevelop-cli/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devrecated/autodevelop-cli.git",
+    "directory": "packaging/npm"
+  },
+  "license": "SEE LICENSE IN LICENSE.md",
+  "author": "Devrecated",
+  "bin": {
+    "autodevelop": "bin/autodevelop"
+  },
+  "files": [
+    "bin/",
+    "install.js",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node install.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  }
+}

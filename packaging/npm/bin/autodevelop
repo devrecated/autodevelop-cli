@@ -1,0 +1,28 @@
+#!/usr/bin/env node
+"use strict";
+
+const { spawn } = require("child_process");
+const fs = require("fs");
+const path = require("path");
+
+const vendor =
+  process.platform === "win32"
+    ? path.join(__dirname, "..", "vendor", "autodevelop.exe")
+    : path.join(__dirname, "..", "vendor", "autodevelop");
+
+if (!fs.existsSync(vendor)) {
+  console.error(
+    "autodevelop: binary missing — re-run npm install, or:\n" +
+      "  curl -fsSL https://raw.githubusercontent.com/devrecated/autodevelop-cli/main/scripts/install.sh | bash",
+  );
+  process.exit(1);
+}
+
+const child = spawn(vendor, process.argv.slice(2), {
+  stdio: "inherit",
+  windowsHide: true,
+});
+child.on("exit", (code, signal) => {
+  if (signal) process.kill(process.pid, signal);
+  process.exit(code == null ? 1 : code);
+});
