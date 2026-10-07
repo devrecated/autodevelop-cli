@@ -68,7 +68,24 @@ jobs:
           node-version: "22.14"
           registry-url: https://registry.npmjs.org
 
-      - name: Publish npm package
+      - name: Publish npm package (trusted publisher OIDC)
+        if: ${{ secrets.NPM_TOKEN == '' }}
+        env:
+          VER: ${{ inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          VER="${VER#v}"
+          if ! [[ "$VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "Refusing to publish with version '$VER' (expected semver from tag)." >&2
+            exit 1
+          fi
+          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version=process.env.VER; fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n')"
+          npm install -g npm@^11.5.1
+          npm publish --provenance --access public
+          npm view "@devrecated/autodevelop@${VER}" version
+
+      - name: Publish npm package (NPM_TOKEN fallback)
+        if: ${{ secrets.NPM_TOKEN != '' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           VER: ${{ inputs.tag || github.ref_name }}
@@ -81,5 +98,5 @@ jobs:
           fi
           node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version=process.env.VER; fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n')"
           npm install -g npm@^11.5.1
-          npm publish --access public
+          npm publish --provenance --access public
           npm view "@devrecated/autodevelop@${VER}" version
