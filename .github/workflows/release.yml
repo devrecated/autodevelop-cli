@@ -60,30 +60,27 @@ jobs:
         with:
           ref: ${{ inputs.tag || github.ref }}
 
-      # Trusted publishing (OIDC). Configure once on npmjs.com → package → Trusted Publisher:
-      #   Organization: devrecated  Repository: autodevelop-cli  Workflow: release.yml
-      # NPM_TOKEN is a fallback only; prefer OIDC (npm ≥ 11.5.1).
       - uses: actions/setup-node@v7
         with:
           node-version: "22.14"
-          registry-url: https://registry.npmjs.org
 
+      # npm automation token (repo secret NPM_TOKEN). Same path as manual `npm publish` from packaging/npm.
       - name: Publish npm package
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           VER: ${{ inputs.tag || github.ref_name }}
         run: |
           set -euo pipefail
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "NPM_TOKEN not set — skipping npm publish (publish locally from packaging/npm if needed)." >&2
+            exit 0
+          fi
           VER="${VER#v}"
           if ! [[ "$VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
             echo "Refusing to publish with version '$VER' (expected semver from tag)." >&2
             exit 1
           fi
-          if [ -n "${NPM_TOKEN:-}" ]; then
-            export NODE_AUTH_TOKEN="$NPM_TOKEN"
-          fi
-          unset NPM_TOKEN
           node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version=process.env.VER; fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n')"
-          npm install -g npm@^11.5.1
-          npm publish --provenance --access public
+          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
+          npm publish --access public
           npm view "@devrecated/autodevelop@${VER}" version
