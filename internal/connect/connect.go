@@ -15,6 +15,7 @@ import (
 	"github.com/devrecated/autodevelop-cli/internal/host"
 	"github.com/devrecated/autodevelop-cli/internal/mcpattach"
 	"github.com/devrecated/autodevelop-cli/internal/mcpwrite"
+	"github.com/devrecated/autodevelop-cli/internal/repo"
 )
 
 const (
@@ -104,7 +105,8 @@ func Build(opts Options) Diagnose {
 	}
 	prefix := cliPrefix()
 	summaries := credentials.ListSummaries(path, env)
-	active, _ := credentials.ResolveEffectiveProfile(env, opts.Profile, path, "")
+	project := repo.GitHubProject(cwd)
+	active, _ := credentials.ResolveEffectiveProfile(env, opts.Profile, path, project)
 	if opts.Profile != "" {
 		active = opts.Profile
 	}

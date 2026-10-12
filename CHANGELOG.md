@@ -4,6 +4,11 @@ Copyright (c) 2026 Devrecated.
 
 ## Unreleased
 
+## v1.0.2
+
+### Fixed
+- `connect` resolves the same project-bound profile as `status` (cwd GitHub origin), so diagnose matches the active org for this repo.
+
 ## v1.0.1
 
 ### Added
