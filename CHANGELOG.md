@@ -4,6 +4,12 @@ Copyright (c) 2026 Devrecated.
 
 ## Unreleased
 
+## v1.0.3
+
+### Fixed
+- `connect --fix` binds the cwd GitHub project to the target profile (same as login) so `status` stays on that org.
+- Longer host probe timeouts (2.5s reach / 4s entitlement) so hosted diagnose is less flaky behind edge filters.
+
 ## v1.0.2
 
 ### Fixed

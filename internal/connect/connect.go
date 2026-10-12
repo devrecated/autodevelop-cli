@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	ReachTimeoutMS       = 800
-	EntitlementTimeoutMS = 2000
+	ReachTimeoutMS       = 2500
+	EntitlementTimeoutMS = 4000
 )
 
 // Autofix describes a safe repair the CLI can apply without a browser.
@@ -287,8 +287,8 @@ func Build(opts Options) Diagnose {
 
 	if repoPresent {
 		return Diagnose{
-			OK: false,
-			Class: "dual_mcp",
+			OK:          false,
+			Class:       "dual_mcp",
 			WhatIsWrong: "Autodevelop MCP is also listed in this repo’s .cursor/mcp.json, which can start a second (often stale) host.",
 			Steps: []string{
 				"Clear Autodevelop servers from the repo MCP file (user-global MCP is the supported path).",
@@ -335,27 +335,27 @@ func Build(opts Options) Diagnose {
 	}
 
 	return Diagnose{
-		OK:      true,
-		Class:   "ok",
-		Steps:   []string{},
+		OK:       true,
+		Class:    "ok",
+		Steps:    []string{},
 		Commands: []string{},
-		Autofix: emptyAutofix,
-		Host:    origin,
-		Profile: profileName,
-		OrgName: orgName,
-		OrgID:   orgID,
-		UserMCP: true,
+		Autofix:  emptyAutofix,
+		Host:     origin,
+		Profile:  profileName,
+		OrgName:  orgName,
+		OrgID:    orgID,
+		UserMCP:  true,
 	}
 }
 
 // ApplyResult is the outcome of a safe autofix.
 type ApplyResult struct {
-	OK           bool      `json:"ok"`
-	Diagnose     Diagnose  `json:"diagnose"`
-	Applied      []string  `json:"applied"`
-	NeedsReload  bool      `json:"needs_reload"`
-	NeedsBrowser bool      `json:"needs_browser"`
-	Error        string    `json:"error,omitempty"`
+	OK           bool     `json:"ok"`
+	Diagnose     Diagnose `json:"diagnose"`
+	Applied      []string `json:"applied"`
+	NeedsReload  bool     `json:"needs_reload"`
+	NeedsBrowser bool     `json:"needs_browser"`
+	Error        string   `json:"error,omitempty"`
 }
 
 // Apply runs safe autofix for the current diagnose.
@@ -392,6 +392,12 @@ func Apply(opts Options) ApplyResult {
 		}
 		nextEnv["AUTODEVELOP_PROFILE"] = targetProfile
 		applied = append(applied, "active_profile:"+targetProfile)
+		if project := repo.GitHubProject(cwd); project != "" {
+			if err := credentials.BindProject(path, project, targetProfile); err != nil {
+				return ApplyResult{OK: false, Diagnose: diag, Applied: applied, Error: err.Error()}
+			}
+			applied = append(applied, "bound_project:"+project)
+		}
 	}
 
 	cleared, err := mcpwrite.ClearRepoMCP(cwd)
