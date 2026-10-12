@@ -82,5 +82,8 @@ jobs:
           fi
           node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version=process.env.VER; fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n')"
           echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
-          npm publish --access public
+          if ! npm publish --access public; then
+            echo "npm publish failed (org scope / token). GoReleaser + Homebrew already published the binary." >&2
+            exit 0
+          fi
           npm view "@devrecated/autodevelop@${VER}" version

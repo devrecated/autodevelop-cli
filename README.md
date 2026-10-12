@@ -53,6 +53,8 @@ More channels (Scoop, winget, signing notes): [packaging/README.md](packaging/RE
 autodevelop login                  # prompts for repo dir (default: git root / cwd)
 autodevelop login --dir /path/to/repo --profile acme --no-open
 autodevelop status                 # Profile / Host / Current Project (github.com/owner/repo)
+autodevelop connect                # diagnose MCP / host reachability (chat-friendly)
+autodevelop connect --fix         # safe autofix (profile switch, clear repo MCP, rewrite user MCP)
 autodevelop profiles
 autodevelop install --slug <instance>
 autodevelop mcp                    # host stdio shim (loopback)

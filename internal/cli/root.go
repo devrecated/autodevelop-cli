@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/devrecated/autodevelop-cli/internal/connect"
 	"github.com/devrecated/autodevelop-cli/internal/credentials"
 	"github.com/devrecated/autodevelop-cli/internal/github"
 	"github.com/devrecated/autodevelop-cli/internal/hooks"
@@ -30,6 +31,7 @@ Autodevelop CLI
   autodevelop login [--dir <path>] [--slug <instance>] [--profile <name>] [--no-install] [--no-open]
   autodevelop logout [--profile <name>]
   autodevelop status [--dir <path>]
+  autodevelop connect [--fix] [--dir <path>] [--profile <name>]
   autodevelop profiles
   autodevelop install [--dir <path>] [--slug <instance>]
   autodevelop github init|status|token [--account <login>]
@@ -256,6 +258,55 @@ func Run(argv []string) int {
 			fmt.Println("Current Project:", project)
 		} else if root != "" {
 			fmt.Println("Current Project:", root)
+		}
+		return 0
+	case "connect":
+		root, _ := repo.Resolve(dirFlag, "", false, nil, nil)
+		if root == "" {
+			root, _ = os.Getwd()
+		}
+		opts := connect.Options{
+			Env:             env,
+			Cwd:             root,
+			CredentialsPath: creds,
+			Profile:         profile,
+			Host:            hostFlag,
+		}
+		if hasFlag(args, "fix") {
+			result := connect.Apply(opts)
+			fmt.Println(connect.FormatChat(result.Diagnose))
+			if len(result.Applied) > 0 {
+				fmt.Println()
+				fmt.Println("Applied:")
+				for _, a := range result.Applied {
+					fmt.Println(" -", a)
+				}
+			}
+			if result.Error != "" {
+				fmt.Fprintln(os.Stderr, result.Error)
+				return 1
+			}
+			if result.NeedsReload {
+				fmt.Println()
+				fmt.Println("Reload Cursor so Autodevelop tools reattach.")
+			}
+			if result.NeedsBrowser {
+				fmt.Println("Authenticate the host tool in Cursor if asked.")
+			}
+			if !result.OK {
+				return 1
+			}
+			return 0
+		}
+		diag := connect.Build(opts)
+		if hasFlag(args, "json") {
+			enc, _ := json.MarshalIndent(diag, "", "  ")
+			fmt.Println(string(enc))
+		} else {
+			fmt.Println(connect.FormatChat(diag))
+		}
+		if !diag.OK {
+			return 1
 		}
 		return 0
 	case "profiles", "profile":

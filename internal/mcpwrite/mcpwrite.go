@@ -124,3 +124,83 @@ func WriteUserMCP(origin string) (string, error) {
 	}
 	return dest, nil
 }
+
+func isAutodevelopServer(name string) bool {
+	return name == KitMCPName || name == HostMCPName || name == LegacyHostMCPName
+}
+
+// RepoHasAutodevelop reports whether a workspace MCP file lists Autodevelop servers.
+func RepoHasAutodevelop(root string) (present bool, path string) {
+	for _, rel := range []string{
+		filepath.Join(root, ".cursor", "mcp.json"),
+		filepath.Join(root, "mcp.json"),
+	} {
+		doc := readJSON(rel)
+		servers, _ := doc["mcpServers"].(map[string]any)
+		if servers == nil {
+			continue
+		}
+		for name := range servers {
+			if isAutodevelopServer(name) {
+				return true, rel
+			}
+		}
+	}
+	return false, ""
+}
+
+// UserHasAutodevelop reports whether ~/.cursor/mcp.json lists Autodevelop servers.
+func UserHasAutodevelop() bool {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return false
+	}
+	doc := readJSON(filepath.Join(home, ".cursor", "mcp.json"))
+	servers, _ := doc["mcpServers"].(map[string]any)
+	if servers == nil {
+		return false
+	}
+	for name := range servers {
+		if isAutodevelopServer(name) {
+			return true
+		}
+	}
+	return false
+}
+
+// ClearRepoMCP removes Autodevelop servers from workspace MCP files.
+// Empty mcpServers objects are left as {} (file kept). Returns cleared paths.
+func ClearRepoMCP(root string) ([]string, error) {
+	var cleared []string
+	for _, dest := range []string{
+		filepath.Join(root, ".cursor", "mcp.json"),
+		filepath.Join(root, "mcp.json"),
+	} {
+		if _, err := os.Stat(dest); err != nil {
+			continue
+		}
+		doc := readJSON(dest)
+		servers, _ := doc["mcpServers"].(map[string]any)
+		if servers == nil {
+			continue
+		}
+		changed := false
+		next := map[string]any{}
+		for name, v := range servers {
+			if isAutodevelopServer(name) {
+				changed = true
+				continue
+			}
+			next[name] = v
+		}
+		if !changed {
+			continue
+		}
+		doc["mcpServers"] = next
+		if err := writeJSON(dest, doc); err != nil {
+			return cleared, err
+		}
+		cleared = append(cleared, dest)
+	}
+	return cleared, nil
+}

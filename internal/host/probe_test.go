@@ -8,6 +8,26 @@ import (
 	"time"
 )
 
+func TestProbeFallsBackToHealth(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/ping" {
+			http.NotFound(w, r)
+			return
+		}
+		if r.URL.Path == "/health" {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"ok":true}`))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer srv.Close()
+	result := Probe(srv.Client(), srv.URL, "")
+	if !result.Reachable || result.Via != "/health" {
+		t.Fatalf("%+v", result)
+	}
+}
+
 func TestProbeUnreachableSkipsEntitlement(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("request reached a closed server setup")
@@ -25,9 +45,13 @@ func TestProbeUnreachableSkipsEntitlement(t *testing.T) {
 
 func TestProbeReadsOrgName(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/health" {
+		if r.URL.Path == "/ping" || r.URL.Path == "/health" {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"ok":true}`))
+			return
+		}
+		if r.URL.Path != "/entitlement" {
+			http.NotFound(w, r)
 			return
 		}
 		if r.Header.Get("Authorization") != "Bearer ad_fixture" {
@@ -37,7 +61,7 @@ func TestProbeReadsOrgName(t *testing.T) {
 	}))
 	defer srv.Close()
 	result := Probe(srv.Client(), srv.URL, "ad_fixture")
-	if !result.Reachable || !result.Authorized || result.OrgName != "Acme" {
+	if !result.Reachable || !result.Authorized || result.OrgName != "Acme" || result.Via != "/ping" {
 		t.Fatalf("%+v", result)
 	}
 	if OrganizationLabel(result.OrgName, result.OrgID, "default") != "Acme (default)" {
