@@ -4,6 +4,12 @@ Copyright (c) 2026 Devrecated.
 
 ## Unreleased
 
+## v1.0.4
+
+### Fixed
+- Kit apply installs consumer skills only under `.cursor/skills/autodevelop` (never leaves `autodevelop-internal` on disk — that slug is employee-only).
+- Drops leftover `.cursor/commands/staff` after kit apply; granular skills ship as flat `/<bucket>--<skill>` commands in the hosted kit.
+
 ## v1.0.3
 
 ### Fixed

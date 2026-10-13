@@ -225,8 +225,9 @@ func applyCursorKit(pluginRoot, repo string) error {
 	if src == "" {
 		return nil
 	}
-	// Replace shared kit dirs under .cursor/
-	for _, name := range []string{"rules", "hooks", "commands", "agents", "skills"} {
+	// Replace shared kit dirs under .cursor/ (not the whole skills tree — preserve
+	// client folders and employee-only autodevelop-internal).
+	for _, name := range []string{"rules", "hooks", "commands", "agents"} {
 		from := filepath.Join(src, name)
 		if _, err := os.Stat(from); err != nil {
 			continue
@@ -236,6 +237,9 @@ func applyCursorKit(pluginRoot, repo string) error {
 		if err := copyTree(from, to); err != nil {
 			return err
 		}
+	}
+	if err := applyConsumerSkills(src, repo); err != nil {
+		return err
 	}
 	// Prefer binary hooks.json from kits/cursor if present; rewrite node → autodevelop after copy.
 	hooksSrc := filepath.Join(src, "hooks.json")
@@ -250,6 +254,28 @@ func applyCursorKit(pluginRoot, repo string) error {
 			return err
 		}
 	}
+	return nil
+}
+
+// applyConsumerSkills installs kit skills only as .cursor/skills/autodevelop.
+// Never removes autodevelop-internal (employee) or client skill folders.
+func applyConsumerSkills(kitCursor, repo string) error {
+	kitSkills := filepath.Join(kitCursor, "skills")
+	consumerSrc := filepath.Join(kitSkills, "autodevelop")
+	if _, err := os.Stat(consumerSrc); err != nil {
+		// Older kits may still ship autodevelop-internal as the consumer tree.
+		legacy := filepath.Join(kitSkills, "autodevelop-internal")
+		if _, err2 := os.Stat(legacy); err2 != nil {
+			return nil
+		}
+		consumerSrc = legacy
+	}
+	dest := filepath.Join(repo, ".cursor", "skills", "autodevelop")
+	_ = os.RemoveAll(dest)
+	if err := copyTree(consumerSrc, dest); err != nil {
+		return err
+	}
+	_ = os.RemoveAll(filepath.Join(repo, ".cursor", "commands", "staff"))
 	return nil
 }
 
