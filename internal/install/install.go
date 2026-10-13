@@ -13,10 +13,12 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/devrecated/autodevelop-cli/internal/credentials"
 	"github.com/devrecated/autodevelop-cli/internal/host"
 	"github.com/devrecated/autodevelop-cli/internal/mcpwrite"
+	"github.com/devrecated/autodevelop-cli/internal/skillcleanup"
 )
 
 type Options struct {
@@ -27,6 +29,7 @@ type Options struct {
 	CredentialsPath string
 	Client          *http.Client
 	SkipKit         bool
+	Stdin           io.Reader
 	Write           func(string)
 }
 
@@ -142,7 +145,11 @@ func Run(opts Options) error {
 	}
 	opts.Write("Wrote Cursor, Claude, and user MCP config (autodevelop binary).\n")
 	opts.Write(fmt.Sprintf("Installed policy pack %s for %s (%d files).\n", pack.PolicyPackVersion, pack.Slug, wrote))
-	return nil
+	in := opts.Stdin
+	if in == nil {
+		in = os.Stdin
+	}
+	return skillcleanup.Offer(root, in, os.Stdout, time.Now())
 }
 
 func downloadAndApplyKit(client *http.Client, origin, credential, root string) error {
@@ -225,9 +232,15 @@ func applyCursorKit(pluginRoot, repo string) error {
 	if src == "" {
 		return nil
 	}
+	// Plugin-root checkouts already load commands from kits/cursor. Do not copy
+	// them into .cursor/commands or the same slash command shows twice.
+	pluginCheckout := skillcleanup.HasPluginRoot(repo)
 	// Replace shared kit dirs under .cursor/ (not the whole skills tree — preserve
 	// client folders and employee-only autodevelop-internal).
 	for _, name := range []string{"rules", "hooks", "commands", "agents"} {
+		if name == "commands" && pluginCheckout {
+			continue
+		}
 		from := filepath.Join(src, name)
 		if _, err := os.Stat(from); err != nil {
 			continue
@@ -238,8 +251,10 @@ func applyCursorKit(pluginRoot, repo string) error {
 			return err
 		}
 	}
-	if err := applyConsumerSkills(src, repo); err != nil {
-		return err
+	if !pluginCheckout {
+		if err := applyConsumerSkills(src, repo); err != nil {
+			return err
+		}
 	}
 	// Prefer binary hooks.json from kits/cursor if present; rewrite node → autodevelop after copy.
 	hooksSrc := filepath.Join(src, "hooks.json")

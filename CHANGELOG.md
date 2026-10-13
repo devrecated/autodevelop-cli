@@ -4,6 +4,11 @@ Copyright (c) 2026 Devrecated.
 
 ## Unreleased
 
+## v1.0.5
+
+### Added
+- `autodevelop login` lists repo copies of plugin-root slash commands and `.cursor/skills/autodevelop`, asks y/n, and on yes moves them to `.autodevelop/archive/`. Client folders and `autodevelop-internal` stay. A checkout without `kits/cursor` is not asked.
+
 ## v1.0.4
 
 ### Fixed

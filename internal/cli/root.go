@@ -21,6 +21,7 @@ import (
 	"github.com/devrecated/autodevelop-cli/internal/mcphost"
 	"github.com/devrecated/autodevelop-cli/internal/packstatus"
 	"github.com/devrecated/autodevelop-cli/internal/repo"
+	"github.com/devrecated/autodevelop-cli/internal/skillcleanup"
 	"github.com/devrecated/autodevelop-cli/internal/version"
 )
 
@@ -136,6 +137,9 @@ func Run(argv []string) int {
 				fmt.Fprintln(os.Stderr, err)
 				return 1
 			}
+		} else if err := skillcleanup.Offer(root, os.Stdin, os.Stdout, time.Now()); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
 		}
 		return 0
 	case "logout":
