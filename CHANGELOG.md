@@ -4,6 +4,11 @@ Copyright (c) 2026 Devrecated.
 
 ## Unreleased
 
+## v1.0.6
+
+### Fixed
+- Policy install skips AppleDouble `._*` sidecars, `.DS_Store`, and `__MACOSX`, and removes any already in a directory it writes.
+
 ## v1.0.5
 
 ### Added

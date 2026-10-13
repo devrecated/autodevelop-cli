@@ -111,9 +111,13 @@ func Run(opts Options) error {
 		return err
 	}
 	wrote := 0
+	touched := map[string]struct{}{}
 	for _, f := range pack.Files {
 		dest := strings.ReplaceAll(f.Dest, `\`, "/")
 		if dest == "mcp.json" || strings.Contains(dest, "..") || strings.Contains(dest, ".cursor/private") {
+			continue
+		}
+		if isMacJunkName(dest) {
 			continue
 		}
 		abs := filepath.Join(root, filepath.FromSlash(dest))
@@ -131,7 +135,11 @@ func Run(opts Options) error {
 		if err := os.WriteFile(abs, []byte(f.Content), mode); err != nil {
 			return err
 		}
+		touched[filepath.Dir(abs)] = struct{}{}
 		wrote++
+	}
+	for dir := range touched {
+		purgeMacJunk(dir)
 	}
 
 	if _, err := mcpwrite.WriteWorkspaceMCP(root, origin); err != nil {
@@ -190,7 +198,7 @@ func downloadAndApplyKit(client *http.Client, origin, credential, root string) e
 			return err
 		}
 		name := filepath.Clean(hdr.Name)
-		if strings.HasPrefix(name, "..") {
+		if strings.HasPrefix(name, "..") || isMacJunkName(name) || pathHasMacJunk(name) {
 			continue
 		}
 		target := filepath.Join(stage, name)
@@ -302,6 +310,36 @@ func rewriteHooksJSON(raw []byte) []byte {
 	return []byte(s)
 }
 
+func isMacJunkName(name string) bool {
+	base := filepath.Base(strings.ReplaceAll(name, `\`, "/"))
+	if base == ".DS_Store" || base == "__MACOSX" {
+		return true
+	}
+	return strings.HasPrefix(base, "._")
+}
+
+func pathHasMacJunk(name string) bool {
+	for _, part := range strings.Split(strings.ReplaceAll(name, `\`, "/"), "/") {
+		if part != "" && isMacJunkName(part) {
+			return true
+		}
+	}
+	return false
+}
+
+func purgeMacJunk(dir string) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || !isMacJunkName(entry.Name()) {
+			continue
+		}
+		_ = os.Remove(filepath.Join(dir, entry.Name()))
+	}
+}
+
 func copyTree(src, dest string) error {
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -312,6 +350,12 @@ func copyTree(src, dest string) error {
 			return err
 		}
 		target := filepath.Join(dest, rel)
+		if isMacJunkName(info.Name()) {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
 		if info.IsDir() {
 			return os.MkdirAll(target, 0o755)
 		}
